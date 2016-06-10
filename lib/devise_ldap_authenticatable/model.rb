@@ -27,16 +27,17 @@ module Devise
 
         Devise::LDAP::Adapter.update_own_password(login_with, @password, current_password)
       end
-      
-      def reset_password!(new_password, new_password_confirmation)
+
+      def reset_password(new_password, new_password_confirmation)
         self.password = new_password
         self.password_confirmation = new_password_confirmation.to_s
 
-        if valid?
-          if ::Devise.ldap_update_password
-            Devise::LDAP::Adapter.update_password(login_with, new_password)
-          end
-          clear_reset_password_token
+        if valid? && ::Devise.ldap_update_password
+          Devise::LDAP::Adapter.update_password(login_with, new_password)
+        end
+
+        if respond_to?(:after_password_reset) && valid?
+          ActiveSupport::Deprecation.warn "after_password_reset is deprecated"
           after_password_reset
         end
 
