@@ -16,6 +16,8 @@ module Devise
         @ldap.port = ldap_config["port"]
         @ldap.base = ldap_config["base"]
         @attribute = ldap_config["attribute"]
+        @hash_algo = ldap_config["password_hash_algo"]
+
         @allow_unauthenticated_bind = ldap_config["allow_unauthenticated_bind"]
 
         @ldap_auth_username_builder = params[:ldap_auth_username_builder]
@@ -98,7 +100,7 @@ module Devise
       end
 
       def change_password!
-        update_ldap(:userpassword => Net::LDAP::Password.generate(:sha, @new_password))
+        update_ldap(userpassword: Net::LDAP::Password.generate(@hash_algo, @new_password))
       end
 
       def in_required_groups?

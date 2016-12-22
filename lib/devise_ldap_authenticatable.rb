@@ -76,7 +76,9 @@ module Devise
   end
 
   mattr_accessor :ldap_auth_password_builder
-  @@ldap_auth_password_builder = Proc.new() {|new_password| Net::LDAP::Password.generate(:ssha, new_password) }
+  @@ldap_auth_password_builder = Proc.new() do |new_password|
+    Net::LDAP::Password.generate(::Devise.ldap_config['password_hash_algo'], new_password)
+  end
 
   @@ldap_ad_group_check = false
 
@@ -84,6 +86,17 @@ module Devise
 
     def self.post_process_config(cfg)
     cfg["ssl"] = :simple_tls if cfg["ssl"] === true
+
+    # password hash algorithm. the .generate call is used for checking if the
+    # selected method is supported by Net::LDAP.  It raises an
+    # Net::LDAP::HashTypeUnsupportedError exception when the method
+    # is not supported.
+    if cfg.key?('password_hash_algo')
+      cfg['password_hash_algo'] = cfg['password_hash_algo'].to_s.to_sym
+      Net::LDAP::Password.generate(cfg['password_hash_algo'], "")
+    else
+      cfg['password_hash'] = :ssha
+    end
 
     cfg
   end
