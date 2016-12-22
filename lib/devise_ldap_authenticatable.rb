@@ -19,9 +19,12 @@ module Devise
   
   # A path to YAML config file or a Proc that returns a
   # configuration hash
-  mattr_reader :ldap_config_path
-  if defined?(Rails) && Rails.root.is_a?(Pathname)
-    @@ldap_config_path = Rails.root + 'config/ldap.yml'
+  def self.ldap_config_path
+    return @@ldap_config_path if defined?(@ldap_config_path)
+
+    if defined?(Rails) && Rails.root.is_a?(Pathname)
+      @@ldap_config_path = Rails.root + 'config/ldap.yml'
+    end
   end
 
   def self.ldap_config_path=(path)
