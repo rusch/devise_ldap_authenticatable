@@ -43,6 +43,9 @@ module Devise
   mattr_accessor :ldap_use_admin_to_bind
   @@ldap_use_admin_to_bind = false
   
+  mattr_accessor :ldap_check_group_membership_without_admin
+  @@ldap_check_group_membership_without_admin = false
+
   mattr_accessor :ldap_auth_username_builder
   @@ldap_auth_username_builder = Proc.new() {|attribute, login, ldap| "#{attribute}=#{login},#{ldap.base}" }
 
@@ -80,6 +83,7 @@ module Devise
     Net::LDAP::Password.generate(::Devise.ldap_config['password_hash_algo'], new_password)
   end
 
+  mattr_accessor :ldap_ad_group_check
   @@ldap_ad_group_check = false
 
   private

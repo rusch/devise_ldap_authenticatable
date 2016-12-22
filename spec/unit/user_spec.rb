@@ -54,7 +54,7 @@ describe 'Users' do
       it "should not allow to change password if setting is false" do
         should_be_validated @user, "secret"
         ::Devise.ldap_update_password = false
-        @user.reset_password!("wrong_secret", "wrong_secret")
+        @user.reset_password("wrong_secret", "wrong_secret")
         should_not_be_validated @user, "wrong_secret"
         should_be_validated @user, "secret"
       end
