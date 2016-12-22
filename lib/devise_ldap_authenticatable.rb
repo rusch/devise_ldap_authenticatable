@@ -5,6 +5,7 @@ require 'devise_ldap_authenticatable/exception'
 require 'devise_ldap_authenticatable/logger'
 require 'devise_ldap_authenticatable/ldap/adapter'
 require 'devise_ldap_authenticatable/ldap/connection'
+require 'pathname'
 
 # Get ldap information from config/ldap.yml now
 module Devise
@@ -18,8 +19,17 @@ module Devise
   
   # A path to YAML config file or a Proc that returns a
   # configuration hash
-  mattr_accessor :ldap_config
-  # @@ldap_config = "#{Rails.root}/config/ldap.yml"
+  mattr_reader :ldap_config_path
+  if defined?(Rails) && Rails.root.is_a?(Pathname)
+    @@ldap_config_path = Rails.root + 'config/ldap.yml'
+  end
+
+  def self.ldap_config_path=(path)
+    if defined?(@@ldap_config)
+      remove_class_variable(:@@ldap_config)
+    end
+    @@ldap_config_path = Pathname.new(path)
+  end
   
   mattr_accessor :ldap_update_password
   @@ldap_update_password = true
@@ -36,10 +46,48 @@ module Devise
   mattr_accessor :ldap_auth_username_builder
   @@ldap_auth_username_builder = Proc.new() {|attribute, login, ldap| "#{attribute}=#{login},#{ldap.base}" }
 
+  def self.ldap_config
+    if defined?(@@ldap_config)
+      if @@ldap_config.is_a?(Proc)
+        return post_process_config(@@ldap_config.call)
+      end
+      return @@ldap_config
+    end
+
+    @@ldap_config = post_process_config(
+      YAML.load(ERB.new(ldap_config_path.read).result)[Rails.env]
+    )
+  end
+
+  def self.ldap_config=(value)
+    case value
+    when Hash, Proc
+      @@ldap_config = value
+      if defined?(@@ldap_config_path)
+        remove_class_variable(:@@ldap_config_path)
+      end
+
+    # Preserve compatibiltiy.
+    when Pathname, String
+      self.ldap_config_path = value
+    else
+      raise ArgumentError, 'ldap_config must be either Hash, Proc, String or Pathname.'
+    end
+  end
+
   mattr_accessor :ldap_auth_password_builder
   @@ldap_auth_password_builder = Proc.new() {|new_password| Net::LDAP::Password.generate(:ssha, new_password) }
 
   @@ldap_ad_group_check = false
+
+  private
+
+    def self.post_process_config(cfg)
+    cfg["ssl"] = :simple_tls if cfg["ssl"] === true
+
+    cfg
+  end
+
 end
 
 # Add ldap_authenticatable strategy to defaults.

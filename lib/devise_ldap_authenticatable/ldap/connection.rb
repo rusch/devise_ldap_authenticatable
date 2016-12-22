@@ -4,14 +4,12 @@ module Devise
       attr_reader :ldap, :login
 
       def initialize(params = {})
-        if ::Devise.ldap_config.is_a?(Proc)
-          ldap_config = ::Devise.ldap_config.call
-        else
-          ldap_config = YAML.load(ERB.new(File.read(::Devise.ldap_config || "#{Rails.root}/config/ldap.yml")).result)[Rails.env]
-        end
+        ldap_config = ::Devise.ldap_config
+
         ldap_options = params
-        ldap_config["ssl"] = :simple_tls if ldap_config["ssl"] === true
-        ldap_options[:encryption] = ldap_config["ssl"].to_sym if ldap_config["ssl"]
+        if ldap_config["ssl"]
+          ldap_options = params.merge(encryption: ldap_config["ssl"].to_sym)
+        end
 
         @ldap = Net::LDAP.new(ldap_options)
         @ldap.host = ldap_config["host"]
