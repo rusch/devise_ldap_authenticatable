@@ -91,19 +91,24 @@ module Devise
 
   private
 
-    def self.post_process_config(cfg)
+  def self.post_process_config(cfg)
     cfg["ssl"] = :simple_tls if cfg["ssl"] === true
 
     # password hash algorithm. the .generate call is used for checking if the
     # selected method is supported by Net::LDAP.  It raises an
     # Net::LDAP::HashTypeUnsupportedError exception when the method
     # is not supported.
-    if cfg.key?('password_hash_algo')
-      cfg['password_hash_algo'] = cfg['password_hash_algo'].to_s.to_sym
-      Net::LDAP::Password.generate(cfg['password_hash_algo'], "")
-    else
-      cfg['password_hash'] = :ssha
+    algo = cfg['password_hash_algo']
+    if algo.nil? || algo.to_s == ''
+      algo = :ssha
+    elsif algo.is_a?(String)
+      algo = algo.to_sym
+    elsif !algo.is_a?(Symbol)
+      raise "Config value for 'password_hash_algo' must be string or symbol."
     end
+
+    Net::LDAP::Password.generate(algo, "")
+    cfg['password_hash_algo'] = algo
 
     cfg
   end
