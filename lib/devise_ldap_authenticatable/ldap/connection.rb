@@ -167,11 +167,18 @@ module Devise
       end
 
       def user_groups
-        admin_ldap = Connection.admin
-
         DeviseLdapAuthenticatable::Logger.send("Getting groups for #{dn}")
-        filter = Net::LDAP::Filter.eq("uniqueMember", dn)
-        admin_ldap.search(:filter => filter, :base => @group_base).collect(&:dn)
+
+        # Request only the 'cn' attribute. As only the group DNs are
+        # of interest, requesting no attributes at all would be even
+        # better, but an empty array means "all attributes".  At any
+        # rate, the 'uniqueMember' attribute values are not
+        # transferred.
+        Connection.admin.search(
+          :filter     => Net::LDAP::Filter.eq("uniqueMember", dn),
+          :base       => @group_base,
+          :attributes => [ 'cn' ]
+        ).collect(&:dn)
       end
 
       def valid_login?
